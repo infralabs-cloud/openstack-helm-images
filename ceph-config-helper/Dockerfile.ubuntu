@@ -1,8 +1,6 @@
 ARG FROM=docker.io/ubuntu:jammy
 FROM ${FROM}
 
-ARG KUBE_VERSION=1.29.7
-
 ARG CEPH_RELEASE
 ARG CEPH_RELEASE_TAG
 ARG CEPH_REPO
@@ -22,7 +20,6 @@ RUN set -ex \
     && echo "deb [signed-by=/etc/apt/keyrings/ceph.acs] ${CEPH_REPO} ${DISTRO_VERSION} main" | tee /etc/apt/sources.list.d/ceph.list \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
-         ceph=${CEPH_RELEASE_TAG} \
          python3 \
          python3-pip \
          python3-ceph-common \
@@ -34,6 +31,15 @@ RUN set -ex \
          jq \
     && curl -s https://bootstrap.pypa.io/pip/get-pip.py | python3 \
     && pip3 install --upgrade --no-cache-dir rgwadmin \
-    && curl -sSL https://dl.k8s.io/v${KUBE_VERSION}/kubernetes-client-linux-amd64.tar.gz \
-         | tar -zC /usr/local/bin --strip-components=3 --wildcards -x "*/*/*/kubectl" \
+    && ARCH=$(uname -m) \
+    && case "$ARCH" in \
+         x86_64) ARCH="amd64" ;; \
+         aarch64) ARCH="arm64" ;; \
+         armv7l) ARCH="arm" ;; \
+         *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+       esac \
+    && KUBE_VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt) \
+    && curl -LO "https://dl.k8s.io/release/${KUBE_VERSION}/bin/linux/${ARCH}/kubectl" \
+    && chmod +x kubectl \
+    && mv kubectl /usr/local/bin/ \
     && rm -rf /var/lib/apt/lists/*
