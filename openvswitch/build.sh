@@ -7,9 +7,9 @@ cd ${SCRIPT_DIR}/..
 IMAGE="openvswitch"
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
-DISTRO_VERSION=${DISTRO_VERSION:-focal}
+DISTRO_VERSION=${DISTRO_VERSION:-jammy}
 REGISTRY_URI=${REGISTRY_URI:-"openstackhelm/"}
-EXTRA_TAG_INFO=${EXTRA_TAB_INFO:-""}
-docker build -f ${IMAGE}/Dockerfile.${DISTRO} --network=host --build-arg="FROM=${DISTRO}:${DISTRO_VERSION}" -t ${REGISTRY_URI}${IMAGE}:${VERSION}-${DISTRO}${EXTRA_TAG_INFO} ${extra_build_args} ${IMAGE}
+EXTRA_TAG_INFO=${EXTRA_TAG_INFO:-""}
+DOCKER_BUILDKIT=1 docker build -f ${IMAGE}/Dockerfile.${DISTRO} --build-arg FROM=${DISTRO/_/:} --network=host -t ${REGISTRY_URI}${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} ${extra_build_args} ${IMAGE}
 
 cd -
