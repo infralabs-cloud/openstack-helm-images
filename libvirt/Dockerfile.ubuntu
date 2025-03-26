@@ -1,0 +1,92 @@
+ARG FROM
+FROM ${FROM} AS cloudarchive-generator
+
+RUN <<EOF
+  set -xe
+  apt-get update
+  apt-get install -y --no-install-recommends lsb-release curl
+  apt-get clean
+  rm -rf /var/lib/apt/lists/*
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x5EDB1B62EC4926EA" | sudo tee /etc/apt/keyrings/ubuntu-cloud-archive.gpg > /dev/null
+  chmod 644 /etc/apt/keyrings/ubuntu-cloud-archive.gpg
+
+EOF
+
+ARG RELEASE
+RUN <<EOF #!/bin/bash
+set -xe
+
+# Get Ubuntu Release Name (Fallback to /etc/os-release if lsb_release is missing)
+UBUNTU_RELEASE=$(lsb_release -sc 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
+
+# Validate UBUNTU_RELEASE
+if [[ -z "$UBUNTU_RELEASE" ]]; then
+  echo "ERROR: Unable to determine Ubuntu release!"
+  exit 1
+fi
+
+echo "Detected Ubuntu Release: $UBUNTU_RELEASE"
+echo "Using OpenStack Release: ${RELEASE}"
+
+# Check Ubuntu version and set Cloud Archive repository
+if [[ "$UBUNTU_RELEASE" == "jammy" ]]; then
+  if [[ "$RELEASE" =~ ^(antelope|bobcat|caracal)$ ]]; then
+    echo "deb [signed-by=/etc/apt/keyrings/ubuntu-cloud-archive.gpg]  http://ubuntu-cloud.archive.canonical.com/ubuntu $UBUNTU_RELEASE-updates/$RELEASE main" > /etc/apt/sources.list.d/cloudarchive.list
+  else
+    echo "ERROR: $RELEASE is not supported on $UBUNTU_RELEASE!"
+    exit 1
+  fi
+elif [[ "$UBUNTU_RELEASE" == "noble" ]]; then
+  if [[ "$RELEASE" =~ ^(dalmatian|epoxy)$ ]]; then
+    echo "deb [signed-by=/etc/apt/keyrings/ubuntu-cloud-archive.gpg] http://ubuntu-cloud.archive.canonical.com/ubuntu $UBUNTU_RELEASE-updates/$RELEASE main" > /etc/apt/sources.list.d/cloudarchive.list
+  else
+    echo "ERROR: $RELEASE is not supported on $UBUNTU_RELEASE!"
+    exit 1
+  fi
+else
+  echo "ERROR: Unsupported Ubuntu version ($UBUNTU_RELEASE)"
+  exit 1
+fi
+
+# Runtime Stage
+FROM ${FROM} AS runtime
+
+COPY --from=cloudarchive-generator --link /etc/apt/sources.list.d/cloudarchive.list /etc/apt/sources.list.d/cloudarchive.list
+COPY --from=cloudarchive-generator --link /etc/apt/keyrings/ubuntu-cloud-archive.gpg /etc/apt/keyrings/ubuntu-cloud-archive.gpg
+
+RUN <<EOF
+  set -xe
+  apt-get update
+  apt-get install -y --no-install-recommends \
+    ceph-common \
+    cgroup-tools \
+    dmidecode \
+    ebtables \
+    iproute2 \
+    ipxe-qemu \
+    kmod \
+    libvirt-clients \
+    libvirt-daemon-system \
+    openssh-client \
+    openvswitch-switch \
+    ovmf \
+    pm-utils \
+    qemu-system \
+    qemu-block-extra
+  # There is no qemu-efi in Ubuntu Noble
+  apt-get install -y --no-install-recommends qemu-efi || true
+  apt-get clean
+  rm -rf /var/lib/apt/lists/*
+EOF
+
+# Create OpenStack User and Groups
+ARG PROJECT=nova
+ARG UID=42424
+ARG GID=42424
+RUN set -ex ;\
+    groupadd -g ${GID} ${PROJECT} ;\
+    useradd -u ${UID} -g ${PROJECT} -M -d /var/lib/${PROJECT} -s /usr/sbin/nologin -c "${PROJECT} user" ${PROJECT} ;\
+    mkdir -p /etc/${PROJECT} /var/log/${PROJECT} /var/lib/${PROJECT} /var/cache/${PROJECT} ;\
+    chown ${PROJECT}:${PROJECT} /etc/${PROJECT} /var/log/${PROJECT} /var/lib/${PROJECT} /var/cache/${PROJECT} ;\
+    usermod -a -G kvm ${PROJECT}
