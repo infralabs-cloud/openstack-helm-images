@@ -9,8 +9,7 @@ RELEASE=dalmatian
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
 DISTRO_VERSION=${DISTRO_VERSION:-jammy}
-REGISTRY_URI=${REGISTRY_URI:-"openstackhelm/"}
-
+REGISTRY_URI=${REGISTRY_URI:-"sainusahib/"}
 
 # Check and setup builder
 if ! docker buildx ls | grep -q multi-arch-builder; then
@@ -31,17 +30,15 @@ mkdir -p skyline_console
 wget -O skyline_console/skyline_console.tar.gz \
     https://tarballs.opendev.org/openstack/skyline-console/skyline-console-2.0.0.tar.gz
 
-
 # Build for multiple architectures
 docker buildx build \
     --platform linux/amd64,linux/arm64 \
     -f container/Dockerfile \
     --network=host \
     --push \
-    --cache-from type=registry,ref=docker.io/${{ secrets.DOCKER_REGISTRY }}/${SERVICE}:cache \
-    --cache-to type=registry,ref=docker.io/${{ secrets.DOCKER_REGISTRY }}/${SERVICE}:cache,mode=max \
-    --tag docker.io/${{ secrets.DOCKER_REGISTRY }}/${SERVICE}:${{ github.event.inputs.version }}-ubuntu_jammy \
-    --tag ghcr.io/${{ secrets.GHCR_REGISTRY }}/${SERVICE}:${{ github.event.inputs.version }}-ubuntu_jammy \
+    --cache-from type=registry,ref=${REGISTRY_URI}${IMAGE}:cache \
+    --cache-to type=registry,ref=${REGISTRY_URI}${IMAGE}:cache,mode=max \
+    -t ${REGISTRY_URI}${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION} \
     .
 
 cd -
