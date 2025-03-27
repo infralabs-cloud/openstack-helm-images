@@ -8,9 +8,22 @@ IMAGE="libvirt"
 FROM=ubuntu:jammy
 RELEASE=dalmatian
 VERSION=${VERSION:-latest}
-DISTRO=${DISTRO:-ubuntu_jammy}
+DISTRO=${DISTRO:-ubuntu}
 REGISTRY_URI=${REGISTRY_URI:-"openstackhelm/"}
-EXTRA_TAG_INFO=${EXTRA_TAG_INFO:-"-${LIBVIRT_VERSION}"}
-docker build -f ${IMAGE}/Dockerfile.ubuntu --build-arg FROM=${DISTRO/_/:} --build-arg zed --network=host -t ${REGISTRY_URI}${IMAGE}:${VERSION}-${DISTRO}${EXTRA_TAG_INFO} ${extra_build_args} ${IMAGE}
+
+# Remove any existing builder
+docker buildx rm multi-arch-builder || true
+
+# Create and use new builder
+docker buildx create --driver docker-container --use
+
+# Build for multiple architectures
+docker buildx build \
+    --platform linux/amd64,linux/arm64 \
+    -f ${IMAGE}/Dockerfile.${DISTRO} \
+    --network=host \
+    -t ${REGISTRY_URI}${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}\
+    ${extra_build_args} \
+    ${IMAGE}
 
 cd -
