@@ -9,20 +9,34 @@ FROM=ubuntu:jammy
 RELEASE=dalmatian
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
-REGISTRY_URI=${REGISTRY_URI:-"openstackhelm/"}
+REGISTRY_URI=${REGISTRY_URI:-"sainusahib"}
 
-# Remove any existing builder
-docker buildx rm multi-arch-builder || true
+# Check and setup builder
+TAG_INFO=${1:-"latest"}
+DOCKER_USER=${2:-""}
+DOCKER_TOKEN=${3:-""}
+GHCR_USER=${4:-""}
+GHCR_TOKEN=${5:-""}
 
-# Create and use new builder
-docker buildx create --driver docker-container --use
+if ! docker buildx ls | grep -q multi-arch-builder; then
+    docker buildx create --driver docker-container --name multi-arch-builder --use
+else
+    docker buildx use multi-arch-builder
+fi
+docker login docker.io -u $DOCKER_USER -p $DOCKER_TOKEN
+docker login ghcr.io -u $GHCR_USER -p $GHCR_TOKEN
 
 # Build for multiple architectures
 docker buildx build \
     --platform linux/amd64,linux/arm64 \
     -f ${IMAGE}/Dockerfile.${DISTRO} \
     --network=host \
-    -t ${REGISTRY_URI}${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}\
+    --push \
+            --cache-from type=registry,ref=${REGISTRY_URI}/${IMAGE}:cache \
+            --cache-to type=registry,ref=${REGISTRY_URI}/${IMAGE}:cache,mode=max \
+             --tag=${REGISTRY_URI}/${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
+             --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
+             --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
     ${extra_build_args} \
     ${IMAGE}
 

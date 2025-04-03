@@ -1,6 +1,6 @@
+# First stage: Build ovn-kubernetes for multiple architectures
 ARG FROM
-
-FROM golang:1.20 AS ovn-kubernetes
+FROM --platform=$TARGETPLATFORM golang:1.20 AS ovn-kubernetes
 ARG OVN_KUBERNETES_REF=5359e7d7f872058b6e5bf884c9f19d1922451f29
 ADD https://github.com/ovn-org/ovn-kubernetes.git#${OVN_KUBERNETES_REF} /src
 COPY patches/ovn-kubernetes /patches/ovn-kubernetes
@@ -10,8 +10,9 @@ cd /src/go-controller
 go build -o /usr/bin/ovn-kube-util ./cmd/ovn-kube-util
 EOF
 
+# Second stage: Create the final image
 FROM ${FROM} AS base
-ARG TARGETPLATFORM=linux/amd64
+ARG TARGETPLATFORM
 ADD --chmod=755 https://dl.k8s.io/release/v1.29.3/bin/${TARGETPLATFORM}/kubectl /usr/local/bin/kubectl
 ADD --chmod=755 https://github.com/krallin/tini/releases/download/v0.19.0/tini /tini
 RUN useradd -u 42424 openvswitch
