@@ -4,7 +4,7 @@ SCRIPT_DIR=`dirname ${SCRIPT}`
 ## Only build from main folder
 cd ${SCRIPT_DIR}/..
 
-IMAGE="mariadb"
+IMAGE="kubernetes-entrypoint"
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
 DISTRO_VERSION=${DISTRO_VERSION:-jammy}

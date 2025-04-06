@@ -34,7 +34,7 @@ docker login ghcr.io -u $GHCR_USER -p $GHCR_TOKEN
 
 # Build for multiple architectures
 docker buildx build \
-    --build-arg FROM=ubuntu:20.04 \
+    --build-arg FROM=ubuntu:jammy \
     --platform linux/amd64,linux/arm64 \
     -f ${IMAGE}/Dockerfile.${DISTRO} \
     --network=host \

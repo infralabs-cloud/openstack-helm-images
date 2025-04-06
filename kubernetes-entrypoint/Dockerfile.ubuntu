@@ -1,0 +1,23 @@
+# First stage: Build kubernetes-entrypoint for multiple architectures
+ARG FROM
+FROM --platform=$TARGETPLATFORM golang:1.20 AS kubernetes-entrypoint
+ARG KUBERNETES_ENTRYPOINT_REF=latest
+ADD https://github.com/airshipit/kubernetes-entrypoint.git#${KUBERNETES_ENTRYPOINT_REF} /src
+RUN <<EOF bash -xe
+cd /src
+go build -o /usr/bin/kubernetes-entrypoint .
+EOF
+
+# Second stage: Create the final image
+FROM ${FROM} AS base
+ARG TARGETPLATFORM
+ADD --chmod=755 https://dl.k8s.io/release/v1.29.3/bin/${TARGETPLATFORM}/kubectl /usr/local/bin/kubectl
+ADD --chmod=755 https://github.com/krallin/tini/releases/download/v0.19.0/tini /tini
+RUN apt-get update && apt-get install -y \
+      ca-certificates \
+      curl \
+      gnupg2 \
+      procps \
+      && rm -rf /var/lib/apt/lists/*
+COPY --from=kubernetes-entrypoint --link /usr/bin/kubernetes-entrypoint /usr/bin/kubernetes-entrypoint
+ENTRYPOINT ["/tini", "--", "/usr/bin/kubernetes-entrypoint"]
