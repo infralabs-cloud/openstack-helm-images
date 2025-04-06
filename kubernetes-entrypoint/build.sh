@@ -19,6 +19,7 @@ docker buildx create --driver docker-container --use
 
 # Build for multiple architectures
 docker buildx build \
+    --build-arg FROM=ubuntu:jammy \
     --platform linux/amd64,linux/arm64 \
     -f ${IMAGE}/Dockerfile.${DISTRO} \
     --network=host \
