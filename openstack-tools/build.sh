@@ -8,7 +8,7 @@ IMAGE="openstack-tools"
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
 DISTRO_VERSION=${DISTRO_VERSION:-jammy}
-REGISTRY_URI=${REGISTRY_URI:-"sainusahib/"}
+REGISTRY_URI=${REGISTRY_URI:-"sainusahib"}
 EXTRA_TAG_INFO=${EXTRA_TAG_INFO:-""}
 
 
