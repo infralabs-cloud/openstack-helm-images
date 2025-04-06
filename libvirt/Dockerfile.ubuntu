@@ -1,60 +1,7 @@
-ARG FROM=ubuntu:jammy
+ARG FROM=infralabs-cloud/loci-base:2024.2-ubuntu
 FROM ${FROM}
 
-FROM ${FROM} AS cloudarchive-generator
-
-COPY ubuntu-keyring-2012-cloud-archive.gpg /etc/apt/keyrings/ubuntu-cloud-archive.gpg
-RUN <<EOF
-  set -xe
-  mkdir -p /etc/apt/keyrings
-  apt-get update
-  apt-get install -y --no-install-recommends lsb-release curl
-  apt-get clean
-  rm -rf /var/lib/apt/lists/*
-  chmod 644 /etc/apt/keyrings/ubuntu-cloud-archive.gpg
-EOF
-
-ARG RELEASE
-RUN <<EOF #!/bin/bash
-set -xe
-
-# Get Ubuntu Release Name (Fallback to /etc/os-release if lsb_release is missing)
-UBUNTU_RELEASE=$(lsb_release -sc 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
-
-# Validate UBUNTU_RELEASE
-if [[ -z "$UBUNTU_RELEASE" ]]; then
-  echo "ERROR: Unable to determine Ubuntu release!"
-  exit 1
-fi
-
-echo "Detected Ubuntu Release: $UBUNTU_RELEASE"
-echo "Using OpenStack Release: ${RELEASE}"
-
-# Check Ubuntu version and set Cloud Archive repository
-if [[ "$UBUNTU_RELEASE" == "jammy" ]]; then
-  if [[ "$RELEASE" =~ ^(antelope|bobcat|caracal)$ ]]; then
-    echo "deb [signed-by=/etc/apt/keyrings/ubuntu-cloud-archive.gpg] http://ubuntu-cloud.archive.canonical.com/ubuntu $UBUNTU_RELEASE-updates/$RELEASE main" > /etc/apt/sources.list.d/cloudarchive.list
-  else
-    echo "ERROR: $RELEASE is not supported on $UBUNTU_RELEASE!"
-    exit 1
-  fi
-elif [[ "$UBUNTU_RELEASE" == "noble" ]]; then
-  if [[ "$RELEASE" =~ ^(dalmatian|epoxy)$ ]]; then
-    echo "deb [signed-by=/etc/apt/keyrings/ubuntu-cloud-archive.gpg] http://ubuntu-cloud.archive.canonical.com/ubuntu $UBUNTU_RELEASE-updates/$RELEASE main" > /etc/apt/sources.list.d/cloudarchive.list
-  else
-    echo "ERROR: $RELEASE is not supported on $UBUNTU_RELEASE!"
-    exit 1
-  fi
-else
-  echo "ERROR: Unsupported Ubuntu version ($UBUNTU_RELEASE)"
-  exit 1
-fi
-EOF
-
 FROM ${FROM} AS runtime
-
-COPY --from=cloudarchive-generator --link /etc/apt/sources.list.d/cloudarchive.list /etc/apt/sources.list.d/cloudarchive.list
-COPY --from=cloudarchive-generator --link /etc/apt/keyrings/ubuntu-cloud-archive.gpg /etc/apt/keyrings/ubuntu-cloud-archive.gpg
 
 RUN <<EOF
   set -xe
