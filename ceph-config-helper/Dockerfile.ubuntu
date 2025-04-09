@@ -15,11 +15,6 @@ RUN set -ex \
          ca-certificates \
          gnupg2 \
          curl \
-    && curl -fsSL ${CEPH_KEY} | gpg --dearmor -o /etc/apt/keyrings/ceph.acs \
-    && DISTRO_VERSION=$(grep '^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2) \
-    && echo "deb [signed-by=/etc/apt/keyrings/ceph.acs] ${CEPH_REPO} ${DISTRO_VERSION} main" | tee /etc/apt/sources.list.d/ceph.list \
-    && apt-get update \
-    && apt-get install --no-install-recommends -y \
          python3 \
          python3-pip \
          python3-ceph-common \
