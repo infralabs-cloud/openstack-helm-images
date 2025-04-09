@@ -27,6 +27,7 @@ fi
 docker login docker.io -u $DOCKER_USER -p $DOCKER_TOKEN
 docker login ghcr.io -u $GHCR_USER -p $GHCR_TOKEN
 
+git clone --depth=1 https://github.com/airshipit/kubernetes-entrypoint.git src
 docker buildx build \
             --file=${IMAGE}/Dockerfile.${DISTRO} \
             --platform linux/amd64,linux/arm64 \
@@ -37,7 +38,7 @@ docker buildx build \
              --tag=${REGISTRY_URI}/${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
              --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
              --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-             ${extra_build_args} ${IMAGE}
+             ${extra_build_args} src
 
 cd -
 
