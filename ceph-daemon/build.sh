@@ -7,7 +7,7 @@ cd ${SCRIPT_DIR}/..
 IMAGE="ceph-daemon"
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
-DISTRO_VERSION=${DISTRO_VERSION:-jammy}
+DISTRO_VERSION=${DISTRO_VERSION:-noble}
 REGISTRY_URI=${REGISTRY_URI:-"openstackhelm/"}
 EXTRA_TAG_INFO=${EXTRA_TAG_INFO:-""}
 docker build --file=${IMAGE}/Dockerfile.${DISTRO} \

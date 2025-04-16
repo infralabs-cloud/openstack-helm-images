@@ -1,7 +1,5 @@
-ARG FROM=infralabs-cloud/loci-base:2024.2-ubuntu
+ARG FROM=docker.io/ubuntu:noble
 FROM ${FROM}
-
-FROM ${FROM} AS runtime
 
 RUN <<EOF
   set -xe

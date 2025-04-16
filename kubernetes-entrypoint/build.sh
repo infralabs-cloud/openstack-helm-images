@@ -7,7 +7,7 @@ cd ${SCRIPT_DIR}/..
 IMAGE="kubernetes-entrypoint"
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
-DISTRO_VERSION=${DISTRO_VERSION:-jammy}
+DISTRO_VERSION=${DISTRO_VERSION:-noble}
 
 REGISTRY_URI=${REGISTRY_URI:-"sainusahib"}
 EXTRA_TAG_INFO=${EXTRA_TAG_INFO:-""}
@@ -33,8 +33,6 @@ docker buildx build \
             --platform linux/amd64,linux/arm64 \
              --network=host \
              --push \
-            --cache-from type=registry,ref=${REGISTRY_URI}/${IMAGE}:cache \
-            --cache-to type=registry,ref=${REGISTRY_URI}/${IMAGE}:cache,mode=max \
              --tag=${REGISTRY_URI}/${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
              --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
              --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \

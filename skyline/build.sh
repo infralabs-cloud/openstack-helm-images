@@ -8,7 +8,7 @@ FROM=ubuntu:jammy
 RELEASE=dalmatian
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
-DISTRO_VERSION=${DISTRO_VERSION:-jammy}
+DISTRO_VERSION=${DISTRO_VERSION:-noble}
 REGISTRY_URI=${REGISTRY_URI:-"sainusahib"}
 
 # Check and setup builder
@@ -46,8 +46,6 @@ docker buildx build \
     -f container/Dockerfile \
     --network=host \
     --push \
-            --cache-from type=registry,ref=${REGISTRY_URI}/${IMAGE}:cache \
-            --cache-to type=registry,ref=${REGISTRY_URI}/${IMAGE}:cache,mode=max \
              --tag=${REGISTRY_URI}/${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
              --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
              --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
