@@ -1,4 +1,4 @@
-ARG FROM=docker.io/ubuntu:noble
+ARG FROM=docker.io/ubuntu:jammy
 FROM ${FROM}
 
 ARG CEPH_RELEASE

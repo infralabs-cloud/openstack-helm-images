@@ -8,7 +8,7 @@ FROM=ubuntu:jammy
 RELEASE=dalmatian
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
-DISTRO_VERSION=${DISTRO_VERSION:-noble}
+DISTRO_VERSION=${DISTRO_VERSION:-jammy}
 REGISTRY_URI=${REGISTRY_URI:-"sainusahib"}
 
 # Check and setup builder

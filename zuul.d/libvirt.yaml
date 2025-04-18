@@ -75,7 +75,7 @@
             - "2024.2-ubuntu_noble-{{ currentdate }}"
             - "2024.2-ubuntu_noble"
           build_args:
-            - FROM=ubuntu:noble
+            - FROM=ubuntu:jammy
             - RELEASE=dalmatian
         - context: libvirt
           repository: openstackhelm/libvirt
@@ -88,7 +88,7 @@
             - "2025.1-ubuntu_noble-{{ currentdate }}"
             - "2025.1-ubuntu_noble"
           build_args:
-            - FROM=ubuntu:noble
+            - FROM=ubuntu:jammy
             - RELEASE=epoxy
     files: &libvirt_files
       - libvirt/.*

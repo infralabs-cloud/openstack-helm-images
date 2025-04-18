@@ -7,7 +7,7 @@ cd ${SCRIPT_DIR}/..
 IMAGE="libvirt"
 VERSION=${VERSION:-latest}
 DISTRO=${DISTRO:-ubuntu}
-DISTRO_VERSION=${DISTRO_VERSION:-noble}
+DISTRO_VERSION=${DISTRO_VERSION:-jammy}
 
 REGISTRY_URI=${REGISTRY_URI:-"sainusahib"}
 EXTRA_TAG_INFO=${EXTRA_TAG_INFO:-""}
@@ -30,7 +30,7 @@ docker login ghcr.io -u $GHCR_USER -p $GHCR_TOKEN
 
 docker buildx build \
             --file=${IMAGE}/Dockerfile.${DISTRO} \
-            --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2--ubuntu_noble \
+            --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2-ubuntu_jammy \
             --platform linux/amd64,linux/arm64 \
              --network=host \
              --push \
