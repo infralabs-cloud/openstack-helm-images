@@ -19,6 +19,7 @@ DOCKER_USER=${2:-""}
 DOCKER_TOKEN=${3:-""}
 GHCR_USER=${4:-""}
 GHCR_TOKEN=${5:-""}
+BASE=${6:-""}
 
 # need golan for compile ovn
 apt  install -y golang-go
@@ -34,13 +35,13 @@ docker login ghcr.io -u $GHCR_USER -p $GHCR_TOKEN
 
 # Build for multiple architectures
 docker buildx build \
-    --build-arg FROM=ubuntu:jammy \
     --platform linux/amd64,linux/arm64 \
     -f ${IMAGE}/Dockerfile.${DISTRO} \
+    --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2-${BASE} \
     --network=host \
-             --tag=${REGISTRY_URI}/${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-             --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-             --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
+    --push \
+    --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${BASE}  \
+    --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${BASE} \
     ${extra_build_args} \
     --push \
     ${IMAGE}

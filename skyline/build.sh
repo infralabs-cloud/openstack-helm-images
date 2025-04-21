@@ -44,11 +44,11 @@ wget -O skyline_console/skyline_console.tar.gz \
 docker buildx build \
     --platform linux/amd64,linux/arm64 \
     -f container/Dockerfile \
+    --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2-${BASE} \
     --network=host \
     --push \
-             --tag=${REGISTRY_URI}/${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-             --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-             --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
+    --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${BASE}  \
+    --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${BASE} \
     .
 
 cd -

@@ -18,6 +18,7 @@ DOCKER_USER=${2:-""}
 DOCKER_TOKEN=${3:-""}
 GHCR_USER=${4:-""}
 GHCR_TOKEN=${5:-""}
+BASE=${6:-""}
 
 
 if ! docker buildx ls | grep -q multi-arch-builder; then
@@ -32,11 +33,11 @@ docker login ghcr.io -u $GHCR_USER -p $GHCR_TOKEN
 docker buildx build \
     --platform linux/amd64,linux/arm64 \
     -f ${IMAGE}/Dockerfile.${DISTRO} \
+    --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2-${BASE} \
     --network=host \
     --push \
-    --tag=${REGISTRY_URI}/${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-    --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-    --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
+    --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${BASE}  \
+    --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${BASE} \
     ${extra_build_args} \
     ${IMAGE}
 

@@ -29,13 +29,12 @@ docker login ghcr.io -u $GHCR_USER -p $GHCR_TOKEN
 
 docker buildx build \
             --file=${IMAGE}/Dockerfile.${DISTRO} \
-            --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2-ubuntu_noble \
             --platform linux/amd64,linux/arm64 \
-             --network=host \
-             --push \
-             --tag=${REGISTRY_URI}/${IMAGE}:${VERSION}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-             --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
-             --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${DISTRO}_${DISTRO_VERSION}${EXTRA_TAG_INFO} \
+            --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2-${BASE} \
+            --network=host \
+            --push \
+            --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${BASE}  \
+            --tag=ghcr.io/${GHCR_USER}/${IMAGE}:${TAG_INFO}-${BASE} \
              ${extra_build_args} ${IMAGE}
 
 cd -
