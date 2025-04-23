@@ -37,7 +37,7 @@ docker login ghcr.io -u $GHCR_USER -p $GHCR_TOKEN
 docker buildx build \
     --platform linux/amd64,linux/arm64 \
     -f ${IMAGE}/Dockerfile.${DISTRO} \
-    --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2-${BASE} \
+    --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:${TAG_INFO}-${BASE} \
     --network=host \
     --push \
     --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${BASE}  \

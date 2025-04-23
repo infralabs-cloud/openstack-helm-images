@@ -17,6 +17,8 @@ DOCKER_USER=${2:-""}
 DOCKER_TOKEN=${3:-""}
 GHCR_USER=${4:-""}
 GHCR_TOKEN=${5:-""}
+BASE=${6:-""}
+
 
 
 if ! docker buildx ls | grep -q multi-arch-builder; then
@@ -44,7 +46,7 @@ wget -O skyline_console/skyline_console.tar.gz \
 docker buildx build \
     --platform linux/amd64,linux/arm64 \
     -f container/Dockerfile \
-    --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:2024.2-${BASE} \
+    --build-arg FROM=ghcr.io/${GHCR_USER}/loci-base:${TAG_INFO}-${BASE} \
     --network=host \
     --push \
     --tag=docker.io/${REGISTRY_URI}/${IMAGE}:${TAG_INFO}-${BASE}  \
