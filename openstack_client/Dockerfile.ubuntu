@@ -1,40 +1,46 @@
-ARG FROM=ubuntu:jammy
+ARG FROM=ubuntu:noble
 FROM ${FROM}
 
-ARG OPENSTACK_RELEASE=2023.2
-ARG UPPER_CONSTRAINTS_FILE=https://releases.openstack.org/constraints/upper/${OPENSTACK_RELEASE}
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y \
-      python3-pip \
-      && rm -rf /var/lib/apt/lists/*
+# Install Python + pip
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-dev \
+        build-essential \
+        git \
+        && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --upgrade pip && \
-  pip3 install \
-  -c${UPPER_CONSTRAINTS_FILE} \
-  cmd2 \
-  python-barbicanclient \
-  python-blazarclient \
-  python-cinderclient \
-  python-designateclient \
-  python-glanceclient \
-  python-heatclient \
-  python-ironicclient \
-  python-keystoneclient \
-  python-magnumclient \
-  python-manilaclient \
-  python-mistralclient \
-  python-monascaclient \
-  python-neutronclient \
-  python-novaclient \
-  python-octaviaclient \
-  python-openstackclient \
-  python-saharaclient \
-  python-swiftclient \
-  python-tackerclient \
-  python-troveclient \
-  python-vitrageclient \
-  python-watcherclient \
-  python-zaqarclient \
-  python-zunclient \
-  --ignore-installed
+# Upgrade pip/setuptools/wheel
+RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
 
+# Install new-style OpenStack clients
+RUN pip3 install --no-cache-dir --ignore-installed \
+      cmd2 \
+      python-openstackclient \
+      barbicanclient \
+      blazarclient \
+      cinderclient \
+      designateclient \
+      glanceclient \
+      heatclient \
+      ironicclient \
+      magnumclient \
+      manilaclient \
+      mistralclient \
+      monascaclient \
+      neutronclient \
+      novaclient \
+      octaviaclient \
+      saharaclient \
+      swiftclient \
+      tackerclient \
+      troveclient \
+      vitrageclient \
+      watcherclient \
+      zaqarclient \
+      zunclient
+
+CMD ["bash"]
