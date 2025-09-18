@@ -23,6 +23,7 @@ RUN apt-get update && \
     python3-osc-placement \
     python3-osc-lib \
     python3-openstacksdk \
+    python-octaviaclient \
     curl \
     wget \
     telnet \
