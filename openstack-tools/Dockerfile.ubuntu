@@ -1,5 +1,6 @@
 # Use Ubuntu as the base image
-FROM ubuntu:24.04
+ARG FROM=ubuntu:noble
+FROM ${FROM}
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -23,7 +24,7 @@ RUN apt-get update && \
     python3-osc-placement \
     python3-osc-lib \
     python3-openstacksdk \
-    python-octaviaclient \
+    python3-octaviaclient \
     curl \
     wget \
     telnet \
