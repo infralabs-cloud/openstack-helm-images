@@ -29,11 +29,20 @@
         - openstack-helm-images-promote-ceph-config-helper
         - openstack-helm-images-promote-ceph-daemon
         - openstack-helm-images-promote-ceph-utility
-    periodic-weekly:
+    periodic:
       jobs:
-        - openstack-helm-images-build-ceph-config-helper
-        - openstack-helm-images-build-ceph-daemon
-        - openstack-helm-images-build-ceph-utility
+        - openstack-helm-images-upload-ceph-config-helper
+        - openstack-helm-images-upload-ceph-daemon
+        - openstack-helm-images-upload-ceph-utility
+        - openstack-helm-images-promote-ceph-config-helper:
+            dependencies:
+              - name: openstack-helm-images-upload-ceph-config-helper
+        - openstack-helm-images-promote-ceph-daemon:
+            dependencies:
+              - name: openstack-helm-images-upload-ceph-daemon
+        - openstack-helm-images-promote-ceph-utility:
+            dependencies:
+              - name: openstack-helm-images-upload-ceph-utility
 
 - job:
     name: openstack-helm-images-build-ceph-common
@@ -41,18 +50,19 @@
     abstract: true
     vars:
       currentdate: "{{ now(utc=True,fmt='%Y%m%d') }}"
-      docker_images:
+      container_images:
         - &ceph_image
-          dockerfile: Dockerfile.ubuntu
+          container_filename: Dockerfile.ubuntu
+          registry: quay.io
           build_args:
-            - "FROM='ubuntu:jammy'"
-            - "CEPH_RELEASE='squid'"
-            - "CEPH_RELEASE_TAG='19.2.1-1~jammy'"
-            - "CEPH_REPO='http://mirror.mirantis.com/acicd/ceph-19.2.1.patch1/jammy'"
-            - "CEPH_KEY='http://mirror.mirantis.com/acicd/ceph-19.2.1.patch1/jammy/release.asc'"
+            - "FROM='quay.io/airshipit/ubuntu:jammy'"
+            - "CEPH_RELEASE='tentacle'"
+            - "CEPH_RELEASE_TAG='20.2.0-1jammy'"
+            - "CEPH_REPO='http://download.ceph.com/debian-tentacle'"
+            - "CEPH_KEY='http://download.ceph.com/keys/release.asc'"
           tags:
             - latest-ubuntu_jammy
-            - "ubuntu_jammy_19.2.1-1-{{ currentdate }}"
+            - "ubuntu_jammy_20.2.0-1-{{ currentdate }}"
     files: &ceph_files
       - ceph.*
       - zuul.d/ceph.*
@@ -63,10 +73,10 @@
     description: Build ceph-config-helper images
     vars: &ceph-config-helper_vars
       currentdate: "{{ now(utc=True,fmt='%Y%m%d') }}"
-      docker_images:
+      container_images:
         - <<: *ceph_image
           context: ceph-config-helper
-          repository: openstackhelm/ceph-config-helper
+          repository: quay.io/airshipit/ceph-config-helper
 
 - job:
     name: openstack-helm-images-upload-ceph-config-helper
@@ -88,10 +98,10 @@
     description: Build ceph-daemon images
     vars: &ceph-daemon_vars
       currentdate: "{{ now(utc=True,fmt='%Y%m%d') }}"
-      docker_images:
+      container_images:
         - <<: *ceph_image
           context: ceph-daemon
-          repository: openstackhelm/ceph-daemon
+          repository: quay.io/airshipit/ceph-daemon
 
 - job:
     name: openstack-helm-images-upload-ceph-daemon
@@ -113,10 +123,10 @@
     description: Build ceph-utility images
     vars: &ceph-utility_vars
       currentdate: "{{ now(utc=True,fmt='%Y%m%d') }}"
-      docker_images:
+      container_images:
         - <<: *ceph_image
           context: ceph-utility
-          repository: openstackhelm/ceph-utility
+          repository: quay.io/airshipit/ceph-utility
 
 - job:
     name: openstack-helm-images-upload-ceph-utility

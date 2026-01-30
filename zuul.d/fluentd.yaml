@@ -21,12 +21,13 @@
     promote:
       jobs:
         - openstack-helm-images-promote-fluentd
-    periodic-weekly:
+    periodic:
       jobs:
         - openstack-helm-images-upload-fluentd
         - openstack-helm-images-promote-fluentd:
             dependencies:
-              - name: openstack-helm-images-monitoring
+              - name: openstack-helm-images-logging
+        - openstack-helm-images-logging
 
 - job:
     name: openstack-helm-images-build-fluentd
@@ -34,10 +35,11 @@
     description: Build fluentd image with custom plugins
     vars: &fluentd_vars
       currentdate: "{{ now(utc=True,fmt='%Y%m%d') }}"
-      docker_images:
+      container_images:
         - context: fluentd
-          repository: openstackhelm/fluentd
-          dockerfile: Dockerfile.debian
+          registry: quay.io
+          repository: quay.io/airshipit/fluentd
+          container_filename: Dockerfile.debian
           tags:
             - latest-debian
             - "debian-{{ currentdate }}"

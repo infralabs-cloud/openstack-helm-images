@@ -14,12 +14,12 @@
 - project:
     check:
       jobs:
-        - openstack-helm-images-compute-kit-2024-2-ubuntu_jammy
-        - openstack-helm-images-cinder-2024-2-ubuntu_jammy
+        - openstack-helm-images-compute-kit-2025-1-ubuntu_jammy
+        - openstack-helm-images-cinder-2025-1-ubuntu_jammy
 
 - job:
-    name: openstack-helm-images-compute-kit-2024-2-ubuntu_jammy
-    parent: openstack-helm-compute-kit-2024-2-ubuntu_jammy
+    name: openstack-helm-images-compute-kit-2025-1-ubuntu_jammy
+    parent: openstack-helm-compute-kit-2025-1-ubuntu_jammy
     dependencies:
       - name: openstack-helm-images-build-openvswitch
         soft: true
@@ -40,11 +40,11 @@
       - zuul.d/mariadb.yaml
       - libvirt/.*
       - zuul.d/libvirt.yaml
-      - zuul.d/openstack-2024.2-ubuntu_jammy.yaml
+      - zuul.d/openstack-2025.1-ubuntu_jammy.yaml
 
 - job:
-    name: openstack-helm-images-cinder-2024-2-ubuntu_jammy
-    parent: openstack-helm-cinder-2024-2-ubuntu_jammy
+    name: openstack-helm-images-cinder-2025-1-ubuntu_jammy
+    parent: openstack-helm-cinder-2025-1-ubuntu_jammy
     nodeset: openstack-helm-5nodes-ubuntu_jammy
     dependencies:
       - name: openstack-helm-images-build-mariadb
@@ -54,4 +54,4 @@
     files:
       - mariadb/.*
       - zuul.d/mariadb.yaml
-      - zuul.d/openstack-2024.2-ubuntu_jammy.yaml
+      - zuul.d/openstack-2025.1-ubuntu_jammy.yaml

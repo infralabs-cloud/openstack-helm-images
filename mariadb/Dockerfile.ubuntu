@@ -1,14 +1,13 @@
-# Use the latest stable MariaDB version
-FROM mariadb:10.11.5
+# mariadb:10.6.14-focal
+ARG FROM=public.ecr.aws/docker/library/mariadb:11.4.8-noble
+FROM ${FROM}
 
 RUN set -ex ;\
     apt update ;\
     apt install -y --no-install-recommends \
         python3-pip ;\
-    pip3 --no-cache-dir install --upgrade pip ;\
-    hash -r ;\
-    pip3 --no-cache-dir install --upgrade setuptools ;\
-    pip3 --no-cache-dir install --upgrade \
+    rm -f /usr/lib/python*/EXTERNALLY-MANAGED ;\
+    pip3 --no-cache-dir install \
       configparser \
       iso8601 \
       kubernetes \

@@ -21,12 +21,13 @@
     promote:
       jobs:
         - openstack-helm-images-promote-prometheus-openstack-exporter
-    periodic-weekly:
+    periodic:
       jobs:
         - openstack-helm-images-upload-prometheus-openstack-exporter
         - openstack-helm-images-promote-prometheus-openstack-exporter:
             dependencies:
               - name: openstack-helm-images-monitoring
+        - openstack-helm-images-monitoring
 
 - job:
     name: openstack-helm-images-build-prometheus-openstack-exporter
@@ -34,12 +35,13 @@
     description: Build Prometheus OpenStack exporter image
     vars: &prometheus-openstack-exporter_vars
       currentdate: "{{ now(utc=True,fmt='%Y%m%d') }}"
-      docker_images:
+      container_images:
         - context: prometheus-openstack-exporter
-          repository: openstackhelm/prometheus-openstack-exporter
-          dockerfile: Dockerfile.ubuntu
+          registry: quay.io
+          repository: quay.io/airshipit/prometheus-openstack-exporter
+          container_filename: Dockerfile.ubuntu
           build_args:
-            - "FROM=docker.io/ubuntu:jammy"
+            - "FROM=quay.io/airshipit/ubuntu:jammy"
           tags:
             - latest-ubuntu_jammy
             - "ubuntu_jammy-{{ currentdate }}"

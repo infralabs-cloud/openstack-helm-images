@@ -17,19 +17,20 @@
     check:
       jobs:
         - openstack-helm-images-build-ovn
-        - openstack-helm-images-compute-kit-ovn-2024-1-ubuntu_jammy
+        - openstack-helm-images-compute-kit-ovn-2025-1-ubuntu_jammy
     gate:
       jobs:
         - openstack-helm-images-upload-ovn
     promote:
       jobs:
         - openstack-helm-images-promote-ovn
-    periodic-weekly:
+    periodic:
       jobs:
         - openstack-helm-images-upload-ovn
         - openstack-helm-images-promote-ovn:
             dependencies:
-              - name: openstack-helm-images-upload-ovn
+              - name: openstack-helm-images-compute-kit-ovn-2025-1-ubuntu_jammy
+        - openstack-helm-images-compute-kit-ovn-2025-1-ubuntu_jammy
 
 - job:
     name: openstack-helm-images-build-ovn
@@ -37,29 +38,25 @@
     description: Build ovn images
     vars: &ovn_vars
       currentdate: "{{ now(utc=True,fmt='%Y%m%d') }}"
-      docker_images:
+      container_images:
         - context: ovn
-          repository: openstackhelm/ovn
-          dockerfile: Dockerfile.ubuntu
-          tags:
-            - ubuntu_focal
-            - "ubuntu_focal-{{ currentdate }}"
-          build_args:
-            - FROM=ubuntu:focal
-        - context: ovn
-          repository: openstackhelm/ovn
-          dockerfile: Dockerfile.ubuntu
+          registry: quay.io
+          repository: quay.io/airshipit/ovn
+          container_filename: Dockerfile.ubuntu
           tags:
             - ubuntu_jammy
             - "ubuntu_jammy-{{ currentdate }}"
           build_args:
-            - FROM=ubuntu:jammy
+            - FROM=quay.io/airshipit/ubuntu:jammy
         - context: ovn
-          repository: openstackhelm/ovn
-          dockerfile: Dockerfile.centos
+          registry: quay.io
+          repository: quay.io/airshipit/ovn
+          container_filename: Dockerfile.ubuntu
           tags:
-            - centos_stream9
-            - "centos_stream9-{{ currentdate }}"
+            - ubuntu_noble
+            - "ubuntu_noble-{{ currentdate }}"
+          build_args:
+            - FROM=quay.io/airshipit/ubuntu:noble
       docker_use_buildkit: true
     files: &ovn_files
       - ovn/.*
@@ -80,10 +77,12 @@
     files: *ovn_files
 
 - job:
-    name: openstack-helm-images-compute-kit-ovn-2024-1-ubuntu_jammy
-    parent: openstack-helm-compute-kit-ovn-2024-1-ubuntu_jammy
+    name: openstack-helm-images-compute-kit-ovn-2025-1-ubuntu_jammy
+    parent: openstack-helm-compute-kit-ovn-2025-1-ubuntu_jammy
     voting: false
     files: *ovn_files
     dependencies:
       - name: openstack-helm-images-build-ovn
+        soft: true
+      - name: openstack-helm-images-upload-ovn
         soft: true
