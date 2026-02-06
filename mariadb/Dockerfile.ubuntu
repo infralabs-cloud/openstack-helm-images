@@ -20,4 +20,8 @@ RUN set -ex ;\
        /var/log/* \
        /tmp/* \
        /var/tmp/* ;\
-    usermod -s /bin/false mysql
+    if getent passwd mysql > /dev/null; then \
+        usermod -s /bin/false mysql; \
+    else \
+        groupadd -r mysql && useradd -r -g mysql -s /bin/false mysql; \
+    fi
