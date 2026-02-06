@@ -1,19 +1,26 @@
 ARG FROM=quay.io/airshipit/ubuntu:jammy
 # Build the manager binary
-FROM quay.io/airshipit/golang:1.23.1-bullseye as builder
+FROM --platform=$BUILDPLATFORM golang:1.23-bullseye as builder
 ARG TARGETOS
 ARG TARGETARCH
 
 SHELL [ "/bin/bash", "-cex" ]
-ADD . /usr/src/kubernetes-entrypoint
+RUN apt-get update && apt-get install -y git
+
 WORKDIR /usr/src/kubernetes-entrypoint
+ADD . /usr/src/kubernetes-entrypoint
+
+# If Makefile is missing, it means we are building with a thin context (only scripts).
+# In that case, clone the source code.
+RUN if [ ! -f Makefile ]; then \
+        git clone --depth=1 https://github.com/airshipit/kubernetes-entrypoint.git . ; \
+    fi
+
 ENV GO111MODULE=on
 ENV GOTOOLCHAIN=auto
 
-RUN make get-modules
-
-ARG MAKE_TARGET=build
-RUN make ${MAKE_TARGET}
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -o bin/kubernetes-entrypoint
 
 
 
