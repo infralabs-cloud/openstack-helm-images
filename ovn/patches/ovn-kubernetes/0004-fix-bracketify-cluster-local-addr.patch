@@ -1,0 +1,50 @@
+From 9b265560a574019a41dfb6c428db9fd8154af773 Mon Sep 17 00:00:00 2001
+From: Sainu Sahib <sainusahiba@gmail.com>
+Date: Thu, 3 Sep 2026 05:58:36 +0100
+Subject: [PATCH] fix(ovsdb-raft): bracketify cluster-local-addr on the
+ already-joined path
+
+The "cluster was already previously joined" branch hardcoded square
+brackets around the local cluster address:
+
+    --db-${db}-cluster-local-addr=[${ovn_db_host}]
+
+For an IPv4 address that yields e.g. [10.42.7.2], which OVS parses as an
+IPv6 literal. The raft server then creates AF_INET6 sockets and every
+connection to an IPv4 peer fails with:
+
+  stream_tcp|ERR|tcp:<peer>:6643: connect: Address family not supported by protocol
+
+so the member never joins, ovsdb-server exits with "has not yet joined
+and connected to its cluster", and the pod crash-loops.
+
+The other three run_${db}_ovsdb call sites already use bracketify(),
+which adds brackets only when the address contains a colon. Use it here
+too.
+
+This is normally masked: a single restarting member finds a live cluster
+and takes the cluster_found path instead. It only bites when every
+member restarts at once (e.g. all DB nodes rebuilt or drained together),
+and it then deadlocks the entire raft cluster - the remaining members sit
+in wait_for_event cluster_exists waiting for a cluster that can never
+form.
+---
+ dist/images/ovndb-raft-functions.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dist/images/ovndb-raft-functions.sh b/dist/images/ovndb-raft-functions.sh
+index 65e9b6d..69211d7 100644
+--- a/dist/images/ovndb-raft-functions.sh
++++ b/dist/images/ovndb-raft-functions.sh
+@@ -337,7 +337,7 @@ ovsdb-raft() {
+     #     in the db
+     run_as_ovs_user_if_needed \
+     ${OVNCTL_PATH} run_${db}_ovsdb --no-monitor \
+-    --db-${db}-cluster-local-addr=[${ovn_db_host}] \
++    --db-${db}-cluster-local-addr=$(bracketify ${ovn_db_host}) \
+     --db-${db}-cluster-local-port=${raft_port} \
+     --db-${db}-cluster-local-proto=${transport} \
+     ${db_ssl_opts} \
+-- 
+2.43.0
+
