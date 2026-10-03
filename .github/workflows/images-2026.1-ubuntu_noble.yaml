@@ -30,6 +30,7 @@ concurrency:
 jobs:
   base:
     uses: ./.github/workflows/build-image.yaml
+    secrets: inherit
     with:
       image: base
       tag: 2026.1-ubuntu_noble
@@ -41,6 +42,7 @@ jobs:
 
   venv_builder:
     uses: ./.github/workflows/build-image.yaml
+    secrets: inherit
     with:
       image: venv_builder
       tag: 2026.1-ubuntu_noble
@@ -52,6 +54,7 @@ jobs:
 
   libvirt:
     uses: ./.github/workflows/build-image.yaml
+    secrets: inherit
     with:
       image: libvirt
       tag: 2026.1-ubuntu_noble
@@ -140,6 +143,7 @@ jobs:
             dockerfile: ovn/Dockerfile.ubuntu
             args: FROM=quay.io/airshipit/ubuntu:noble
     uses: ./.github/workflows/build-image.yaml
+    secrets: inherit
     with:
       image: ${{ matrix.image }}
       tag: ${{ matrix.tag || '2026.1-ubuntu_noble' }}
@@ -226,6 +230,7 @@ jobs:
           - image: zaqar
             args: ZAQAR_REF=stable/2026.1
     uses: ./.github/workflows/build-image.yaml
+    secrets: inherit
     with:
       image: ${{ matrix.image }}
       tag: 2026.1-ubuntu_noble
