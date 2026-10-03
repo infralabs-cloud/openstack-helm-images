@@ -1,0 +1,146 @@
+# Build the 2026.1 Ubuntu Noble images for linux/amd64 and linux/arm64 and
+# publish them as ghcr.io/infralabs-cloud/<image>:2026.1-ubuntu_noble.
+#
+# Build arguments mirror the Zuul jobs in zuul.d/, except that Ceph comes from
+# download.ceph.com: the Mirantis mirror used there only carries amd64.
+#
+# Runs from the 2026.1 branch, on push and when sync-upstream merges new
+# upstream commits into it.
+name: images-2026.1-ubuntu_noble
+
+on:
+  push:
+    branches:
+      - "2026.1"
+    paths-ignore:
+      - "doc/**"
+      - "releasenotes/**"
+      - "**.md"
+      - "**.rst"
+      - "zuul.d/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  base:
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      image: base
+      tag: 2026.1-ubuntu_noble
+      dockerfile: base/Dockerfile
+      build-args: |
+        FROM=public.ecr.aws/ubuntu/ubuntu:noble
+        CEPH_REPO=https://download.ceph.com/debian-tentacle
+        CEPH_KEY=https://download.ceph.com/keys/release.asc
+
+  venv_builder:
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      image: venv_builder
+      tag: 2026.1-ubuntu_noble
+      dockerfile: venv_builder/Dockerfile
+      build-args: |
+        FROM=public.ecr.aws/ubuntu/ubuntu:noble
+        REQUIREMENTS_REF=stable/2026.1
+        SETUPTOOLS_CONSTRAINT=
+
+  libvirt:
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      image: libvirt
+      tag: 2026.1-ubuntu_noble
+      context: libvirt
+      dockerfile: libvirt/Dockerfile
+      build-args: |
+        FROM=quay.io/airshipit/ubuntu:noble
+        RELEASE=gazpacho
+        CEPH_REPO=https://download.ceph.com/debian-tentacle
+        CEPH_KEY=https://download.ceph.com/keys/release.asc
+
+  # Service images are built on top of the base and venv_builder images from
+  # this run, pinned by digest.
+  services:
+    needs: [base, venv_builder]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: barbican
+            args: BARBICAN_REF=stable/2026.1
+          - image: blazar
+            args: BLAZAR_REF=stable/2026.1
+          - image: ceilometer
+            args: CEILOMETER_REF=stable/2026.1
+          - image: cinder
+            args: CINDER_REF=stable/2026.1
+          - image: cloudkitty
+            args: CLOUDKITTY_REF=stable/2026.1
+          - image: cyborg
+            args: CYBORG_REF=stable/2026.1
+          - image: designate
+            args: DESIGNATE_REF=stable/2026.1
+          - image: freezer
+            args: FREEZER_REF=stable/2026.1
+          - image: freezer-api
+            args: FREEZER_API_REF=stable/2026.1
+          - image: glance
+            args: GLANCE_REF=stable/2026.1
+          - image: heat
+            args: HEAT_REF=stable/2026.1
+          - image: horizon
+            args: HORIZON_REF=stable/2026.1
+          - image: ironic
+            args: IRONIC_REF=stable/2026.1
+          - image: keystone
+            args: KEYSTONE_REF=stable/2026.1
+          - image: magnum
+            args: MAGNUM_REF=stable/2026.1
+          - image: manila
+            args: MANILA_REF=stable/2026.1
+          - image: masakari
+            args: MASAKARI_REF=stable/2026.1
+          - image: masakari-monitors
+            args: MASAKARI_MONITORS_REF=stable/2026.1
+          - image: mistral
+            args: MISTRAL_REF=stable/2026.1
+          - image: neutron
+            args: NEUTRON_REF=stable/2026.1
+          - image: nova
+            args: NOVA_REF=stable/2026.1
+          - image: octavia
+            args: OCTAVIA_REF=stable/2026.1
+          - image: openstack-client
+            args: OPENSTACKCLIENT_REF=stable/2026.1
+          - image: ovn-bgp-agent
+            args: OVN_BGP_AGENT_REF=stable/2026.1
+          - image: placement
+            args: PLACEMENT_REF=stable/2026.1
+          - image: skyline
+            args: |
+              SKYLINE_APISERVER_REF=stable/2026.1
+              SKYLINE_CONSOLE_REF=stable/2026.1
+          - image: swift
+            args: SWIFT_REF=stable/2026.1
+          - image: tacker
+            args: TACKER_REF=stable/2026.1
+          - image: trove
+            args: TROVE_REF=stable/2026.1
+          - image: watcher
+            args: WATCHER_REF=stable/2026.1
+          - image: zaqar
+            args: ZAQAR_REF=stable/2026.1
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      image: ${{ matrix.image }}
+      tag: 2026.1-ubuntu_noble
+      dockerfile: ${{ matrix.image }}/Dockerfile
+      build-args: |
+        BASE_VENV_BUILDER=${{ needs.venv_builder.outputs.ref }}
+        BASE_RUNTIME=${{ needs.base.outputs.ref }}
+        ${{ matrix.args }}

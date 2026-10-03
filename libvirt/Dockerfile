@@ -84,6 +84,10 @@ RUN <<EOF
     qemu-block-extra
   # There is no qemu-efi in Ubuntu Noble
   apt-get install -y --no-install-recommends qemu-efi || true
+  # aarch64 guests can only boot with UEFI firmware (AAVMF)
+  if [ "$(dpkg --print-architecture)" = "arm64" ]; then
+    apt-get install -y --no-install-recommends qemu-efi-aarch64
+  fi
   apt-get clean
   rm -rf /var/lib/apt/lists/*
 EOF
