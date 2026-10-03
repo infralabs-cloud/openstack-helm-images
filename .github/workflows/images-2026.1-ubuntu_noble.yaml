@@ -201,6 +201,9 @@ jobs:
             args: OCTAVIA_REF=stable/2026.1
           - image: openstack-client
             args: OPENSTACKCLIENT_REF=stable/2026.1
+          # openstack-client plus the remaining 2026.1 clients and Ceph tools
+          - image: openstack-tools
+            args: OPENSTACKCLIENT_REF=stable/2026.1
           - image: ovn-bgp-agent
             args: OVN_BGP_AGENT_REF=stable/2026.1
           - image: placement
