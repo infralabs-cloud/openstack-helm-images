@@ -1,0 +1,59 @@
+# Cherry-pick chosen upstream commits into the 2026.1 branch and rebuild the
+# 2026.1 images. The "Upstream commits pending for 2026.1" issue, kept by
+# sync-upstream, lists the candidates.
+name: backport-2026.1
+
+on:
+  workflow_dispatch:
+    inputs:
+      commits:
+        description: Upstream commit hashes to cherry-pick, oldest first, separated by spaces.
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: backport-2026.1
+
+env:
+  UPSTREAM: https://opendev.org/openstack/openstack-helm-images
+
+jobs:
+  backport:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "2026.1"
+          fetch-depth: 0
+
+      # A conflict fails this step and leaves 2026.1 untouched; cherry-pick
+      # that commit by hand instead.
+      - name: Cherry-pick commits
+        env:
+          COMMITS: ${{ inputs.commits }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch "${UPSTREAM}" master
+          for c in ${COMMITS}; do
+            if ! [[ "${c}" =~ ^[0-9a-f]{7,40}$ ]]; then
+              echo "::error::Not a commit hash: ${c}"
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "${c}" FETCH_HEAD; then
+              echo "::error::${c} is not on upstream master"
+              exit 1
+            fi
+            git cherry-pick -x "${c}"
+          done
+          git push origin HEAD:2026.1
+
+      # Pushes made with GITHUB_TOKEN do not trigger other workflows.
+      - name: Build 2026.1 images
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run images-2026.1-ubuntu_noble.yaml --repo "${GITHUB_REPOSITORY}" --ref 2026.1

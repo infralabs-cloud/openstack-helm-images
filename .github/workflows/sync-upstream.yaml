@@ -1,11 +1,9 @@
-# Merge upstream openstack-helm-images master into this repository.
+# Merge upstream openstack-helm-images master into master here.
 #
-# Upstream has no release branches or tags: every release is built from
-# master. Both master and 2026.1 therefore follow upstream master, while
-# keeping the commits that only exist here (these workflows, arm64 fixes).
-#
-# Pushes made with GITHUB_TOKEN do not trigger other workflows, so the image
-# build is dispatched explicitly when 2026.1 changes.
+# Upstream has no release branches or tags: every release, including the next
+# one, is built from master. So 2026.1 does not follow upstream automatically.
+# Instead this workflow keeps an issue listing the upstream commits that are
+# not in 2026.1 yet, and the backport-2026.1 workflow brings in chosen ones.
 name: sync-upstream
 
 on:
@@ -15,49 +13,83 @@ on:
 
 permissions:
   contents: write
-  actions: write
+  issues: write
 
 concurrency:
   group: sync-upstream
 
 env:
   UPSTREAM: https://opendev.org/openstack/openstack-helm-images
+  ISSUE_TITLE: Upstream commits pending for 2026.1
 
 jobs:
   sync:
-    name: sync (${{ matrix.branch }})
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        branch:
-          - master
-          - "2026.1"
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ matrix.branch }}
+          ref: master
           fetch-depth: 0
 
-      # A conflict fails this step and leaves the branch untouched; resolve
-      # it by hand by merging upstream master locally.
+      # A conflict fails this step and leaves master untouched; resolve it by
+      # hand by merging upstream master locally.
       - name: Merge upstream master
-        id: merge
-        env:
-          BRANCH: ${{ matrix.branch }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch "${UPSTREAM}" master
+          git update-ref refs/upstream/master FETCH_HEAD
           before=$(git rev-parse HEAD)
-          git merge --no-edit -m "Merge upstream master into ${BRANCH}" FETCH_HEAD
+          git merge --no-edit -m "Merge upstream master" refs/upstream/master
           if [ "$(git rev-parse HEAD)" != "${before}" ]; then
-            git push origin HEAD:"${BRANCH}"
-            echo "changed=true" >> "${GITHUB_OUTPUT}"
+            git push origin HEAD:master
           fi
 
-      - name: Build 2026.1 images
-        if: matrix.branch == '2026.1' && steps.merge.outputs.changed == 'true'
+      - name: Report upstream commits not in 2026.1
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run images-2026.1-ubuntu_noble.yaml --repo "${GITHUB_REPOSITORY}" --ref 2026.1
+        run: |
+          git fetch origin 2026.1
+          picked=$(git log origin/2026.1 --format=%B \
+            | sed -n 's/^(cherry picked from commit \([0-9a-f]\{40\}\))$/\1/p')
+          rows=""
+          for c in $(git rev-list --reverse --no-merges refs/upstream/master ^origin/2026.1); do
+            if printf '%s\n' "${picked}" | grep -qx "${c}"; then
+              continue
+            fi
+            flag=""
+            if git show "${c}" | grep -qiE '2026\.2|resolute'; then
+              flag="⚠️ mentions 2026.2/Resolute"
+            fi
+            subject=$(git log -1 --format=%s "${c}" | sed 's/|/\\|/g')
+            date=$(git log -1 --format=%cs "${c}")
+            rows="${rows}| [\`${c:0:10}\`](https://opendev.org/openstack/openstack-helm-images/commit/${c}) | ${date} | ${subject} | ${flag} |"$'\n'
+          done
+
+          number=$(gh issue list --state open --search "in:title \"${ISSUE_TITLE}\"" \
+            --json number,title --jq ".[] | select(.title == \"${ISSUE_TITLE}\") | .number" | head -1)
+
+          if [ -z "${rows}" ]; then
+            if [ -n "${number}" ]; then
+              gh issue close "${number}" --comment "2026.1 has every upstream commit it needs."
+            fi
+            exit 0
+          fi
+
+          {
+            echo "Upstream master commits that are not in the \`2026.1\` branch, oldest first."
+            echo "Commits marked ⚠️ are likely 2026.2 work; check the others before backporting."
+            echo
+            echo "To bring commits into 2026.1, run the **backport-2026.1** workflow with their"
+            echo "hashes (oldest first). Commits you skip stay on this list."
+            echo
+            echo "| Commit | Date | Subject | Note |"
+            echo "|---|---|---|---|"
+            printf '%s' "${rows}"
+          } > body.md
+
+          if [ -n "${number}" ]; then
+            gh issue edit "${number}" --body-file body.md
+          else
+            gh issue create --title "${ISSUE_TITLE}" --body-file body.md
+          fi
