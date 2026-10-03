@@ -63,6 +63,81 @@ jobs:
         CEPH_REPO=https://download.ceph.com/debian-tentacle
         CEPH_KEY=https://download.ceph.com/keys/release.asc
 
+  # Infrastructure images that do not depend on base or venv_builder. Upstream
+  # tags these latest-ubuntu_noble and the like; here they share the 2026.1 tag.
+  infra:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ceph-config-helper
+            context: ceph-config-helper
+            dockerfile: ceph-config-helper/Dockerfile.ubuntu
+            args: |
+              FROM=quay.io/airshipit/ubuntu:noble
+              CEPH_RELEASE=tentacle
+              CEPH_RELEASE_TAG=20.2.4-1noble
+              CEPH_REPO=https://download.ceph.com/debian-tentacle
+              CEPH_KEY=https://download.ceph.com/keys/release.asc
+          - image: ceph-daemon
+            context: ceph-daemon
+            dockerfile: ceph-daemon/Dockerfile.ubuntu
+            args: |
+              FROM=quay.io/airshipit/ubuntu:noble
+              CEPH_RELEASE=tentacle
+              CEPH_RELEASE_TAG=20.2.4-1noble
+              CEPH_REPO=https://download.ceph.com/debian-tentacle
+              CEPH_KEY=https://download.ceph.com/keys/release.asc
+          - image: ceph-utility
+            context: ceph-utility
+            dockerfile: ceph-utility/Dockerfile.ubuntu
+            args: |
+              FROM=quay.io/airshipit/ubuntu:noble
+              CEPH_RELEASE=tentacle
+              CEPH_RELEASE_TAG=20.2.4-1noble
+              CEPH_REPO=https://download.ceph.com/debian-tentacle
+              CEPH_KEY=https://download.ceph.com/keys/release.asc
+          - image: fluentd
+            context: fluentd
+            dockerfile: fluentd/Dockerfile.debian
+            args: ""
+          - image: mariadb
+            context: mariadb
+            dockerfile: mariadb/Dockerfile.ubuntu
+            args: FROM=public.ecr.aws/docker/library/mariadb:11.4.8-noble
+          - image: nagios
+            context: nagios
+            dockerfile: nagios/Dockerfile
+            args: FROM=quay.io/airshipit/ubuntu:noble
+          - image: node-problem-detector
+            context: node-problem-detector
+            dockerfile: node-problem-detector/Dockerfile
+            args: FROM=quay.io/airshipit/ubuntu:noble
+          - image: openvswitch
+            context: openvswitch
+            dockerfile: openvswitch/Dockerfile.ubuntu
+            args: FROM=quay.io/airshipit/ubuntu:noble
+          - image: openvswitch
+            tag: 2026.1-ubuntu_noble-dpdk
+            context: openvswitch
+            dockerfile: openvswitch/Dockerfile.ubuntu-dpdk
+            args: FROM=quay.io/airshipit/ubuntu:noble
+          - image: osh-selenium
+            context: osh-selenium
+            dockerfile: osh-selenium/Dockerfile.ubuntu
+            args: FROM=quay.io/airshipit/ubuntu:noble
+          - image: ovn
+            context: ovn
+            dockerfile: ovn/Dockerfile.ubuntu
+            args: FROM=quay.io/airshipit/ubuntu:noble
+    uses: ./.github/workflows/build-image.yaml
+    with:
+      image: ${{ matrix.image }}
+      tag: ${{ matrix.tag || '2026.1-ubuntu_noble' }}
+      context: ${{ matrix.context }}
+      dockerfile: ${{ matrix.dockerfile }}
+      build-args: ${{ matrix.args }}
+
   # Service images are built on top of the base and venv_builder images from
   # this run, pinned by digest.
   services:
@@ -129,6 +204,9 @@ jobs:
             args: SWIFT_REF=stable/2026.1
           - image: tacker
             args: TACKER_REF=stable/2026.1
+          # Tempest is branchless upstream, so it is built from master.
+          - image: tempest
+            args: TEMPEST_REF=master
           - image: trove
             args: TROVE_REF=stable/2026.1
           - image: watcher

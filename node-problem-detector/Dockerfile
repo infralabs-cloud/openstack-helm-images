@@ -2,7 +2,7 @@
 ARG FROM=quay.io/airshipit/ubuntu:noble
 FROM ${FROM}
 
-ARG TARGETARCH=amd64
+ARG TARGETARCH
 
 ARG NPD_VERSION="v0.8.16"
 ARG NPD_SRC_URL="https://github.com/kubernetes/node-problem-detector/releases/download/${NPD_VERSION}"

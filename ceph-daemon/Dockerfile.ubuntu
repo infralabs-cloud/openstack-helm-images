@@ -55,16 +55,19 @@ RUN set -ex \
     && python3 /tmp/get-pip.py \
     && rm -f /tmp/get-pip.py \
     && pip3 install --no-cache-dir setuptools==70.3.0 \
-    && curl -fsSL https://dl.k8s.io/v${KUBE_VERSION}/bin/linux/amd64/kubectl \
+    && curl -fsSL https://dl.k8s.io/v${KUBE_VERSION}/bin/linux/$(dpkg --print-architecture)/kubectl \
          -o /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl \
-    && curl -fsSL https://github.com/kelseyhightower/confd/releases/download/v${CONFD_VERSION}/confd-${CONFD_VERSION}-linux-amd64 \
+    && curl -fsSL https://github.com/kelseyhightower/confd/releases/download/v${CONFD_VERSION}/confd-${CONFD_VERSION}-linux-$(dpkg --print-architecture) \
          -o /usr/local/bin/confd \
     && chmod +xr /usr/local/bin/confd \
-    && curl -fsSL https://downloads.dell.com/FOLDER05235308M/1/perccli_linux_NF8G9_A07_7.529.00.tar.gz \
-         -o /tmp/perccli.tar.gz \
-    && tar -xzC /tmp -f /tmp/perccli.tar.gz \
-    && alien -i /tmp/perccli_7.5-007.0529_linux/Linux/perccli-007.0529.0000.0000-1.noarch.rpm \
+    && if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+         # Dell perccli is only published for x86_64
+         curl -fsSL https://downloads.dell.com/FOLDER05235308M/1/perccli_linux_NF8G9_A07_7.529.00.tar.gz \
+           -o /tmp/perccli.tar.gz \
+         && tar -xzC /tmp -f /tmp/perccli.tar.gz \
+         && alien -i /tmp/perccli_7.5-007.0529_linux/Linux/perccli-007.0529.0000.0000-1.noarch.rpm; \
+       fi \
     && mkdir -p /etc/confd/conf.d /etc/confd/templates \
     && apt-get purge -y --auto-remove alien \
     && apt-get clean \
