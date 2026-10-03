@@ -101,6 +101,15 @@ jobs:
             context: fluentd
             dockerfile: fluentd/Dockerfile.debian
             args: ""
+          # Used by every openstack-helm chart for dependency checks. It lives
+          # in airship/kubernetes-entrypoint and upstream only publishes amd64.
+          # Its default Go builder image is amd64 only, so use a multiarch one.
+          - image: kubernetes-entrypoint
+            context: https://opendev.org/airship/kubernetes-entrypoint.git#521a5c8aa64253453a4cc5c5af1926c0a93fba67
+            dockerfile: images/Dockerfile.ubuntu_noble
+            args: |
+              FROM=quay.io/airshipit/ubuntu:noble
+              GOLANG_IMAGE=public.ecr.aws/docker/library/golang:1.26.5-trixie
           - image: mariadb
             context: mariadb
             dockerfile: mariadb/Dockerfile.ubuntu

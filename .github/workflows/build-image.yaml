@@ -14,11 +14,11 @@ on:
         required: true
         type: string
       dockerfile:
-        description: Path to the Dockerfile, relative to the repository root.
+        description: Path to the Dockerfile, relative to the repository root, or to the context when it is a git URL.
         required: true
         type: string
       context:
-        description: Build context, relative to the repository root.
+        description: Build context, relative to the repository root, or a git URL.
         type: string
         default: .
       build-args:
