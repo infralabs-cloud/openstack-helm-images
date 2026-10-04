@@ -1,0 +1,14 @@
+# Admin access to the in-cluster OpenStack deployed by openstack-helm.
+# The password is not stored here: the openstack CLI takes it from the
+# OS_PASSWORD environment variable, e.g. from the keystone-keystone-admin
+# secret. OS_CLOUD=mycloud selects this cloud and is set in the image.
+clouds:
+  mycloud:
+    region_name: RegionOne
+    auth:
+      auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      username: admin
+      project_name: admin
+      user_domain_name: Default
+      project_domain_name: default
+    identity_api_version: 3

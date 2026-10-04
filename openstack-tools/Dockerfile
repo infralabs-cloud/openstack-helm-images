@@ -96,6 +96,29 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && dpkg-query -W -f='${Package}=${Version}\n' ceph-common > /etc/image_info/ceph.txt
 
+# Operator tooling: MariaDB client for backups and restores, cron to schedule
+# them, and network troubleshooting tools.
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+         cron \
+         dnsutils \
+         htop \
+         ipcalc \
+         iputils-ping \
+         jq \
+         mariadb-client \
+         net-tools \
+         netcat-openbsd \
+         nmap \
+         telnet \
+         traceroute \
+         vim \
+         wget \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY openstack-tools/clouds.yaml /etc/openstack/clouds.yaml
+ENV OS_CLOUD=mycloud
+
 RUN find /var/lib/openstack \( -name "*.pyc" -o -name "__pycache__" \) -delete \
     && rm -rf /tmp/* /root/.cache /etc/machine-id
 
@@ -108,7 +131,10 @@ RUN set -ex \
     && rbd --version \
     && radosgw-admin --version \
     && s3cmd --version \
-    && python3 -c 'import cephfs, rados, rbd'
+    && python3 -c 'import cephfs, rados, rbd' \
+    && python3 -c 'import openstack.config; openstack.config.OpenStackConfig().get_one("mycloud")' \
+    && mysqldump --version \
+    && nmap --version
 
 RUN groupadd -g 42424 openstacktools \
     && useradd -u 42424 -g 42424 -M -d /var/lib/openstacktools \
@@ -118,3 +144,6 @@ RUN groupadd -g 42424 openstacktools \
     && chown openstacktools:openstacktools \
          /etc/openstacktools /var/log/openstacktools \
          /var/lib/openstacktools /var/cache/openstacktools
+
+WORKDIR /workspace
+CMD ["/bin/bash"]
