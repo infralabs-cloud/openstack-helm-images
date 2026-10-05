@@ -211,6 +211,9 @@ jobs:
   # rebuilt.
   services:
     needs: [plan, base, venv_builder]
+    # base and venv_builder report skipped when they are not rebuilt, which
+    # would skip this job too.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     strategy:
       fail-fast: false
       matrix:
