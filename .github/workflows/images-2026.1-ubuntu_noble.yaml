@@ -5,7 +5,8 @@
 # download.ceph.com: the Mirantis mirror used there only carries amd64.
 #
 # Runs from the 2026.1 branch, on push and when sync-upstream merges new
-# upstream commits into it.
+# upstream commits into it. A push only builds the images its changes affect;
+# a manual run builds the images given in its "images" input.
 name: images-2026.1-ubuntu_noble
 
 on:
@@ -19,6 +20,14 @@ on:
       - "**.rst"
       - "zuul.d/**"
   workflow_dispatch:
+    inputs:
+      images:
+        description: >-
+          Images to build, separated by spaces or commas, or "all". Service
+          images are built on the published base and venv_builder unless those
+          are listed too.
+        type: string
+        default: all
 
 permissions:
   contents: read
@@ -28,10 +37,50 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
+  # Decide which images to build. The result is a space padded list of image
+  # names, plus "services" for every service image, or "all".
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      images: ${{ steps.plan.outputs.images }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+
+      - name: Select images
+        id: plan
+        env:
+          REQUESTED: ${{ inputs.images }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" != push ]; then
+            images=$(echo "${REQUESTED:-all}" | tr ',' ' ')
+          elif ! changed=$(git diff --name-only "${BEFORE}" "${GITHUB_SHA}" 2>/dev/null); then
+            # New branch or force push: nothing to compare against.
+            images=all
+          else
+            images=$(echo "${changed}" | while read -r file; do
+              case "${file}" in
+                (base/*) echo base services ;;
+                (venv_builder/*) echo venv_builder services ;;
+                (bindep.txt|pydep.txt) echo services ;;
+                (*/*) echo "${file%%/*}" ;;
+              esac
+            done | sort -u | tr '\n' ' ')
+          fi
+          images=" $(echo ${images}) "
+          case "${images}" in *" all "*) images=all ;; esac
+          echo "Building: ${images}"
+          echo "images=${images}" >> "${GITHUB_OUTPUT}"
+
   base:
+    needs: plan
     uses: ./.github/workflows/build-image.yaml
     secrets: inherit
     with:
+      skip: ${{ needs.plan.outputs.images != 'all' && !contains(needs.plan.outputs.images, ' base ') }}
       image: base
       tag: 2026.1-ubuntu_noble
       dockerfile: base/Dockerfile
@@ -41,9 +90,11 @@ jobs:
         CEPH_KEY=https://download.ceph.com/keys/release.asc
 
   venv_builder:
+    needs: plan
     uses: ./.github/workflows/build-image.yaml
     secrets: inherit
     with:
+      skip: ${{ needs.plan.outputs.images != 'all' && !contains(needs.plan.outputs.images, ' venv_builder ') }}
       image: venv_builder
       tag: 2026.1-ubuntu_noble
       dockerfile: venv_builder/Dockerfile
@@ -53,9 +104,11 @@ jobs:
         SETUPTOOLS_CONSTRAINT=
 
   libvirt:
+    needs: plan
     uses: ./.github/workflows/build-image.yaml
     secrets: inherit
     with:
+      skip: ${{ needs.plan.outputs.images != 'all' && !contains(needs.plan.outputs.images, ' libvirt ') }}
       image: libvirt
       tag: 2026.1-ubuntu_noble
       context: libvirt
@@ -69,6 +122,7 @@ jobs:
   # Infrastructure images that do not depend on base or venv_builder. Upstream
   # tags these latest-ubuntu_noble and the like; here they share the 2026.1 tag.
   infra:
+    needs: plan
     strategy:
       fail-fast: false
       matrix:
@@ -145,6 +199,7 @@ jobs:
     uses: ./.github/workflows/build-image.yaml
     secrets: inherit
     with:
+      skip: ${{ needs.plan.outputs.images != 'all' && !contains(needs.plan.outputs.images, format(' {0} ', matrix.image)) }}
       image: ${{ matrix.image }}
       tag: ${{ matrix.tag || '2026.1-ubuntu_noble' }}
       context: ${{ matrix.context }}
@@ -152,9 +207,10 @@ jobs:
       build-args: ${{ matrix.args }}
 
   # Service images are built on top of the base and venv_builder images from
-  # this run, pinned by digest.
+  # this run, pinned by digest, or on the published ones when those were not
+  # rebuilt.
   services:
-    needs: [base, venv_builder]
+    needs: [plan, base, venv_builder]
     strategy:
       fail-fast: false
       matrix:
@@ -232,10 +288,14 @@ jobs:
     uses: ./.github/workflows/build-image.yaml
     secrets: inherit
     with:
+      skip: >-
+        ${{ needs.plan.outputs.images != 'all'
+            && !contains(needs.plan.outputs.images, ' services ')
+            && !contains(needs.plan.outputs.images, format(' {0} ', matrix.image)) }}
       image: ${{ matrix.image }}
       tag: 2026.1-ubuntu_noble
       dockerfile: ${{ matrix.image }}/Dockerfile
       build-args: |
-        BASE_VENV_BUILDER=${{ needs.venv_builder.outputs.ref }}
-        BASE_RUNTIME=${{ needs.base.outputs.ref }}
+        BASE_VENV_BUILDER=${{ needs.venv_builder.outputs.ref || 'ghcr.io/infralabs-cloud/venv_builder:2026.1-ubuntu_noble' }}
+        BASE_RUNTIME=${{ needs.base.outputs.ref || 'ghcr.io/infralabs-cloud/base:2026.1-ubuntu_noble' }}
         ${{ matrix.args }}
