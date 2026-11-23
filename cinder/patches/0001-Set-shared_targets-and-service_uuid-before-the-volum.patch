@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: gravity <gravity@localhost>
+Date: Mon, 23 Nov 2026 20:12:10 +0000
+Subject: [PATCH] Set shared_targets and service_uuid before the volume becomes
+ available
+
+create_volume set both only after the flow had already saved the volume
+as 'available'. Nova attaches as soon as it sees 'available', so it could
+read service_uuid=None and shared_targets at its default True, and
+os-brick's guard_connection then crashed taking a lock named None
+("'NoneType' object has no attribute 'replace'"). The window is
+milliseconds with a local DB and seconds with a remote one.
+---
+ cinder/volume/manager.py | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/cinder/volume/manager.py b/cinder/volume/manager.py
+index 84cd98a3b..f380c6a9c 100644
+--- a/cinder/volume/manager.py
++++ b/cinder/volume/manager.py
+@@ -809,6 +809,17 @@ class VolumeManager(manager.CleanableManager,
+             with flow_utils.DynamicLogListener(flow_engine, logger=LOG):
+                 flow_engine.run()
+ 
++        # Set shared_targets and service_uuid before the flow marks the volume
++        # 'available'. Nova attaches as soon as it sees 'available', and with
++        # these still at their create-time defaults (shared_targets True,
++        # service_uuid None) os-brick's guard_connection locks on a None name
++        # and the attach crashes. Saved, not just set: the flow refreshes the
++        # volume from the DB first. They are set again below, after the flow,
++        # as before.
++        volume.shared_targets = self._driver_shares_targets()
++        volume.service_uuid = self.service_uuid
++        volume.save()
++
+         # NOTE(dulek): Flag to indicate if volume was rescheduled. Used to
+         # decide if allocated_capacity should be incremented.
+         rescheduled = False
+-- 
+2.43.0
+

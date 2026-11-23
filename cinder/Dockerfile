@@ -11,6 +11,8 @@ ARG PROFILES="fluent lvm ceph qemu apache"
 
 # Use bindep to determine packages needed for this profile set
 COPY bindep.txt pydep.txt /opt/
+# Local fixes on top of ${CINDER_REF}; see the commit message in each patch.
+COPY cinder/patches /opt/cinder-patches
 RUN mkdir -p /etc/image_info && \
     uvx bindep -f /opt/bindep.txt -b -l newline cinder ${PROFILES} > /etc/image_info/bindep_runtime.txt && \
     uvx bindep -f /opt/bindep.txt -b -l newline cinder build ${PROFILES} > /etc/image_info/bindep_build.txt && \
@@ -24,6 +26,7 @@ RUN if [ -s /etc/image_info/bindep_build.txt ]; then \
 
 RUN sed -i '/^cinder===/d' /upper-constraints.txt \
     && git clone --filter=blob:none -b ${CINDER_REF} ${CINDER_REPO} /tmp/cinder \
+    && git -C /tmp/cinder apply --verbose /opt/cinder-patches/*.patch \
     && uv pip install \
          --build-constraint /upper-constraints.txt \
          -c /upper-constraints.txt \
