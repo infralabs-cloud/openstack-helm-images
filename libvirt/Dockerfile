@@ -82,6 +82,10 @@ RUN <<EOF
     pm-utils \
     qemu-system \
     qemu-block-extra
+  # Ubuntu ships the qxl display device and SPICE support as loadable QEMU
+  # modules in a separate package. Without it libvirt does not offer the qxl
+  # video model, and guests from images with hw_video_model=qxl fail to start.
+  apt-get install -y --no-install-recommends qemu-system-modules-spice
   # There is no qemu-efi in Ubuntu Noble
   apt-get install -y --no-install-recommends qemu-efi || true
   # aarch64 guests can only boot with UEFI firmware (AAVMF)
