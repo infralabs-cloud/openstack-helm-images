@@ -86,6 +86,11 @@ RUN <<EOF
   # modules in a separate package. Without it libvirt does not offer the qxl
   # video model, and guests from images with hw_video_model=qxl fail to start.
   apt-get install -y --no-install-recommends qemu-system-modules-spice
+  # Fail the build if qxl went missing (e.g. a package split upstream), rather
+  # than finding out when guests fail to spawn on the computes.
+  if [ "$(dpkg --print-architecture)" = "amd64" ]; then
+    qemu-system-x86_64 -device help | grep -q '"qxl-vga"'
+  fi
   # There is no qemu-efi in Ubuntu Noble
   apt-get install -y --no-install-recommends qemu-efi || true
   # aarch64 guests can only boot with UEFI firmware (AAVMF)
